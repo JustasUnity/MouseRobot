@@ -1,23 +1,23 @@
 ﻿#define ENABLE_UI_TESTING
 
-using System;
+using BrightIdeasSoftware;
+using Robot;
+using Robot.Abstractions;
+using Robot.Scripts;
 using RobotEditor.Abstractions;
+using RobotEditor.Hierarchy;
+using RobotEditor.Utils;
+using RobotRuntime;
+using RobotRuntime.Abstractions;
+using RobotRuntime.Scripts;
+using RobotRuntime.Utils;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
-using RobotRuntime;
-using BrightIdeasSoftware;
-using System.Collections.Generic;
-using System.Linq;
-using System.Diagnostics;
-using RobotRuntime.Utils;
-using System.Drawing;
-using Robot.Abstractions;
-using RobotRuntime.Abstractions;
-using RobotEditor.Hierarchy;
-using Robot;
-using RobotRuntime.Scripts;
-using RobotEditor.Utils;
-using Robot.Scripts;
 
 namespace RobotEditor
 {
@@ -62,6 +62,7 @@ namespace RobotEditor
 
             CommandFactory.NewUserCommands += AddNewCommandsToCreateMenu;
             AddNewCommandsToCreateMenu();
+            //contextMenuStrip.HandleCreated += (object o, EventArgs e) => AddNewCommandsToCreateMenu();
 
             treeListView.FormatCell += UpdateFontsTreeListView;
             HierarchyUtils.CreateColumns(treeListView, HierarchyNodeStringConverter);
@@ -352,7 +353,7 @@ namespace RobotEditor
                 return;
             }
 
-            e.DropSink.CanDropOnItem =  targetNode.Script != null || targetNode.Command.CanBeNested;
+            e.DropSink.CanDropOnItem = targetNode.Script != null || targetNode.Command.CanBeNested;
 
             if (targetNode.Script != null && sourceNode.Command != null)
                 e.DropSink.CanDropBetween = false;
@@ -424,8 +425,7 @@ namespace RobotEditor
             var commandNode = scriptNode.GetNodeFromValue(command);
             m_HighlightedNode = commandNode;
 
-            if (treeListView.Created)
-                treeListView.Invoke(new Action(() => treeListView.Refresh()));
+            treeListView.BeginInvokeIfCreated(new MethodInvoker(() => treeListView.Refresh()));
         }
 
         private void OnScriptsFinishedRunning()

@@ -33,12 +33,13 @@ namespace Robot.Plugins
             this.Profiler = Profiler;
             this.StatusManager = StatusManager;
 
-
             CompilerParams.GenerateExecutable = false;
             CompilerParams.GenerateInMemory = false;
 
             CompilerParams.ReferencedAssemblies.Add("System.dll");
+            CompilerParams.ReferencedAssemblies.Add("System.Core.dll");
             CompilerParams.ReferencedAssemblies.Add("System.Drawing.dll");
+            CompilerParams.ReferencedAssemblies.Add("System.Windows.Forms.dll");
             CompilerParams.ReferencedAssemblies.Add("System.Windows.Forms.dll");
             //CompilerParams.ReferencedAssemblies.Add("Microsoft.CSharp.dll");
         }

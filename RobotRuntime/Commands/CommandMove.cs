@@ -35,9 +35,9 @@ namespace RobotRuntime.Commands
             x1 = WinAPI.GetCursorPosition().X;
             y1 = WinAPI.GetCursorPosition().Y;
 
-            for (int i = 1; i <= 50; i++)
+            for (int i = 1; i <= 20; i++)
             {
-                WinAPI.MouseMoveTo(x1 + ((X - x1) * i / 50), y1 + ((Y - y1) * i / 50));
+                WinAPI.MouseMoveTo(x1 + ((X - x1) * i / 20), y1 + ((Y - y1) * i / 20));
             }
         }
 

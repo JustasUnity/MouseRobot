@@ -1,5 +1,6 @@
 ﻿using Robot.Abstractions;
 using RobotEditor.Windows.Base;
+using RobotRuntime;
 using RobotRuntime.Abstractions;
 using RobotRuntime.Utils;
 using System;
@@ -37,6 +38,15 @@ namespace RobotEditor.Drawing
         public void OnPaint(PaintEventArgs e)
         {
             var g = e.Graphics;
+
+            lock (RecognizeText.Boxes)
+            {
+                if (RecognizeText.Boxes != null && RecognizeText.Boxes.Count > 0)
+                    foreach (var b in RecognizeText.Boxes)
+                    {
+                        g.DrawRectangle(bluePen, b.X1, b.Y1, b.Width, b.Height);
+                    }
+            }
             if (MouseRobot.IsVisualizationOn)
             {
                 DrawSmallObservedScreenCopy(g);

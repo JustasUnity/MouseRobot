@@ -6,6 +6,6 @@ namespace Robot.Settings
     [Serializable]
     public class CompilerSettings : BaseSettings
     {
-        public string[] References { get; set; }
+        public string[] CompilerReferences { get; set; }
     }
 }

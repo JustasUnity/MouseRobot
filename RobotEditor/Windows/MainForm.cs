@@ -221,7 +221,7 @@ namespace RobotEditor
         private void OnStatusUpdated(Status status)
         {
             if (!this.Created || !statusStrip.Created || this.Disposing || this.IsDisposed || 
-                statusStrip.Created || statusStrip.IsDisposed || statusStrip.Disposing)
+                !statusStrip.Created || statusStrip.IsDisposed || statusStrip.Disposing)
                 return;
 
             this.Invoke(new MethodInvoker(() =>
@@ -483,6 +483,12 @@ namespace RobotEditor
         {
             ((PropertiesWindow)m_PropertiesWindow).Show(m_DockPanel);
             m_PropertiesWindow.ShowSettings(SettingsManager.GetSettings<FeatureDetectionSettings>());
+        }
+
+        private void compilerToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            ((PropertiesWindow)m_PropertiesWindow).Show(m_DockPanel);
+            m_PropertiesWindow.ShowSettings(SettingsManager.GetSettings<CompilerSettings>());
         }
 
         #endregion

@@ -8,23 +8,23 @@ using System.Drawing;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
-using Tesseract;
+//using Tesseract;
 
 namespace RobotRuntime
 {
     public class RecognizeText
     {
         public static bool Run = false;
-        static TesseractEngine engine = null;
+        // static TesseractEngine engine = null;
 
-        public static IList<Rect> Boxes = new List<Rect>();
+        public static IList<Rectangle> Boxes = new List<Rectangle>();
         public static IList<Point> Points = new List<Point>();
 
         public static object ImageLock = new object();
 
         private static Bitmap cloneOfScreen = null;
 
-        public static Point[] GetListOfPoints(Bitmap image)
+        /*public static Point[] GetListOfPoints(Bitmap image)
         {
             if (engine == null)
                 engine = new TesseractEngine(Paths.PluginPath + "/tessdata", "eng", EngineMode.Default);
@@ -57,7 +57,7 @@ namespace RobotRuntime
 
                                 // skip short words
                                 if (word.Length < 3)
-                                    continue;*/
+                                    continue;*//*
 
                                 Boxes.Add(box);
                                 Point p = new Point((box.X1 + box.X2) / 2, (box.Y1 + box.Y2) / 2);
@@ -78,7 +78,7 @@ namespace RobotRuntime
                 Console.WriteLine(e.ToString());
             }
             return Points.ToArray();
-        }
+        }*/
 
         static public List<Rectangle> detectLettersRectangles(Bitmap screen)
         {
@@ -118,7 +118,7 @@ namespace RobotRuntime
             }
             lock (Boxes)
             {
-                Boxes = list.Select(r => new Rect(r.X, r.Y, r.Width, r.Height)).Where(p => p.Y1 > 70 && p.Y1 < 1000).ToArray();
+                Boxes = list.Select(r => new Rectangle(r.X, r.Y, r.Width, r.Height)).Where(p => p.Y > 70 && p.Y < 1000).ToArray();
                 Points = list.Select(r => new Point(r.X + r.Width / 2, r.Y + r.Height / 2)).Where(p => p.Y > 70 && p.Y < 1000).ToArray();
             }
             return list;

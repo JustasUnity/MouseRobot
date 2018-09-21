@@ -44,7 +44,7 @@ namespace RobotEditor.Drawing
                 if (RecognizeText.Boxes != null && RecognizeText.Boxes.Count > 0)
                     foreach (var b in RecognizeText.Boxes)
                     {
-                        g.DrawRectangle(bluePen, b.X1, b.Y1, b.Width, b.Height);
+                        g.DrawRectangle(bluePen, b.X, b.Y, b.Width, b.Height);
                     }
             }
             if (MouseRobot.IsVisualizationOn)

@@ -1,23 +1,23 @@
 ﻿#define ENABLE_UI_TESTING
 
-using System;
+using BrightIdeasSoftware;
+using Robot;
+using Robot.Abstractions;
+using Robot.Scripts;
 using RobotEditor.Abstractions;
+using RobotEditor.Hierarchy;
+using RobotEditor.Utils;
+using RobotRuntime;
+using RobotRuntime.Abstractions;
+using RobotRuntime.Scripts;
+using RobotRuntime.Utils;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
-using RobotRuntime;
-using BrightIdeasSoftware;
-using System.Collections.Generic;
-using System.Linq;
-using System.Diagnostics;
-using RobotRuntime.Utils;
-using System.Drawing;
-using Robot.Abstractions;
-using RobotRuntime.Abstractions;
-using RobotEditor.Hierarchy;
-using Robot;
-using RobotRuntime.Scripts;
-using RobotEditor.Utils;
-using Robot.Scripts;
 
 namespace RobotEditor
 {
@@ -60,13 +60,20 @@ namespace RobotEditor
             TestRunner.TestRunEnd += OnScriptsFinishedRunning;
             TestRunner.TestData.CommandRunningCallback += OnCommandRunning;
 
+            // subscribing for both treeListView and contextMenuStrip creation, since it's not clear which will be created first
+            treeListView.HandleCreated += AddNewCommandsToCreateMenu;
+            contextMenuStrip.HandleCreated += AddNewCommandsToCreateMenu;
             CommandFactory.NewUserCommands += AddNewCommandsToCreateMenu;
-            AddNewCommandsToCreateMenu();
 
             treeListView.FormatCell += UpdateFontsTreeListView;
             HierarchyUtils.CreateColumns(treeListView, HierarchyNodeStringConverter);
 
-            UpdateHierarchy();
+            treeListView.HandleCreated += UpdateHierarchy;
+        }
+
+        private void AddNewCommandsToCreateMenu(object sender, EventArgs e)
+        {
+            AddNewCommandsToCreateMenu();
         }
 
         private void AddNewCommandsToCreateMenu()
@@ -108,30 +115,28 @@ namespace RobotEditor
             }
         }
 
-        private void UpdateHierarchy()
+        private void UpdateHierarchy(object sender, EventArgs args)
         {
             m_Nodes.Clear();
 
             foreach (var s in ScriptManager.LoadedScripts)
                 m_Nodes.Add(new HierarchyNode(s));
 
-            RefreshTreeListView();
-
-            treeListView.BeginInvokeIfCreated(new MethodInvoker(() => treeListView.ExpandAll()));
+            RefreshTreeListViewAsync(() => treeListView.ExpandAll());
         }
 
-        private void RefreshTreeListView()
+        private IAsyncResult RefreshTreeListViewAsync(Action callbackAfterRefresh = null)
         {
-            treeListView.BeginInvokeIfCreated(new MethodInvoker(() =>
+            return treeListView.BeginInvokeIfCreated(new MethodInvoker(() =>
             {
                 treeListView.Roots = m_Nodes;
 
                 for (int i = 0; i < treeListView.Items.Count; ++i)
-                {
                     treeListView.Items[i].ImageIndex = 0;
-                }
 
                 treeListView.Refresh();
+
+                callbackAfterRefresh?.Invoke();
             }));
         }
 
@@ -158,10 +163,12 @@ namespace RobotEditor
         {
             var node = new HierarchyNode(script);
             m_Nodes.Add(node);
-            RefreshTreeListView();
 
-            treeListView.SelectedObject = node;
-            treeListView.Expand(node);
+            RefreshTreeListViewAsync(() =>
+            {
+                treeListView.SelectedObject = node;
+                treeListView.Expand(node);
+            });
 
             ASSERT_TreeViewIsTheSameAsInScriptManager();
         }
@@ -171,7 +178,7 @@ namespace RobotEditor
             var node = new HierarchyNode(script);
             var index = script.GetIndex(ScriptManager);
             m_Nodes[index] = node;
-            RefreshTreeListView();
+            RefreshTreeListViewAsync();
 
             ASSERT_TreeViewIsTheSameAsInScriptManager();
         }
@@ -181,10 +188,12 @@ namespace RobotEditor
             var oldSelectedObject = treeListView.SelectedObject;
 
             m_Nodes.RemoveAt(index);
-            RefreshTreeListView();
 
-            if (treeListView.SelectedObject != oldSelectedObject)
-                OnSelectionChanged?.Invoke((BaseScriptManager)ScriptManager, null);
+            RefreshTreeListViewAsync(() =>
+            {
+                if (treeListView.SelectedObject != oldSelectedObject)
+                    OnSelectionChanged?.Invoke((BaseScriptManager)ScriptManager, null);
+            });
 
             ASSERT_TreeViewIsTheSameAsInScriptManager();
         }
@@ -197,34 +206,35 @@ namespace RobotEditor
                 m_Nodes.MoveBefore(index, script.GetIndex(ScriptManager));
             }
 
-            RefreshTreeListView();
+            RefreshTreeListViewAsync();
             ASSERT_TreeViewIsTheSameAsInScriptManager();
         }
 
         private void OnCommandAddedToScript(Script script, Command parentCommand, Command command)
         {
-            HierarchyUtils.OnCommandAddedToScript(m_Nodes, script, parentCommand, command);
-            RefreshTreeListView();
+            var addedNode = HierarchyUtils.OnCommandAddedToScript(m_Nodes, script, parentCommand, command);
+            var postRefreshAction = (addedNode.Parent.Children.Count == 1) ? () => treeListView.Expand(addedNode.Parent) : default(Action);
+
+            RefreshTreeListViewAsync(postRefreshAction);
         }
 
         private void OnCommandRemovedFromScript(Script script, Command parentCommand, int commandIndex)
         {
             HierarchyUtils.OnCommandRemovedFromScript(m_Nodes, script, parentCommand, commandIndex);
-            RefreshTreeListView();
+            RefreshTreeListViewAsync();
         }
 
         private void OnCommandModifiedOnScript(Script script, Command oldCommand, Command newCommand)
         {
             HierarchyUtils.OnCommandModifiedOnScript(m_Nodes, script, oldCommand, newCommand);
-            RefreshTreeListView();
+            RefreshTreeListViewAsync();
         }
 
         // Will not work with multi dragging
         private void OnCommandInsertedInScript(Script script, Command parentCommand, Command command, int pos)
         {
             var node = HierarchyUtils.OnCommandInsertedInScript(m_Nodes, script, parentCommand, command, pos);
-            RefreshTreeListView();
-            treeListView.SelectedObject = node;
+            RefreshTreeListViewAsync(() => treeListView.SelectedObject = node);
         }
 
         #endregion
@@ -237,13 +247,13 @@ namespace RobotEditor
                 return;
 
             ScriptManager.ActiveScript = selectedNode.Script;
-            RefreshTreeListView();
+            RefreshTreeListViewAsync();
         }
 
         public void newScriptToolStripMenuItem1_Click(object sender, EventArgs e)
         {
             ScriptManager.NewScript();
-            RefreshTreeListView();
+            RefreshTreeListViewAsync();
 
             ASSERT_TreeViewIsTheSameAsInScriptManager();
         }
@@ -277,10 +287,9 @@ namespace RobotEditor
 
                 script.AddCommandNode(clone, node.parent.value);
                 script.MoveCommandAfter(clone.value, selectedNode.Command);
-                //selectedNode.TopLevelScriptNode.Script.InsertCommandAfter(clone, selectedNode.Command);
             }
 
-            RefreshTreeListView();
+            RefreshTreeListViewAsync();
             treeListView.Focus();
 
             ASSERT_TreeViewIsTheSameAsInScriptManager();
@@ -297,7 +306,7 @@ namespace RobotEditor
             else if (selectedNode.Command != null)
                 ScriptManager.GetScriptFromCommand(selectedNode.Command).RemoveCommand(selectedNode.Command);
 
-            RefreshTreeListView();
+            RefreshTreeListViewAsync();
 
             ASSERT_TreeViewIsTheSameAsInScriptManager();
         }
@@ -317,7 +326,7 @@ namespace RobotEditor
                     SaveSelectedScriptWithDialog(script, updateUI: false);
             }
 
-            RefreshTreeListView();
+            RefreshTreeListViewAsync();
         }
 
         public void SaveSelectedScriptWithDialog(Script script, bool updateUI = true)
@@ -331,7 +340,7 @@ namespace RobotEditor
             {
                 ScriptManager.SaveScript(script, saveDialog.FileName);
                 if (updateUI)
-                    RefreshTreeListView();
+                    RefreshTreeListViewAsync();
             }
         }
         #endregion
@@ -353,7 +362,7 @@ namespace RobotEditor
                 return;
             }
 
-            e.DropSink.CanDropOnItem =  targetNode.Script != null || targetNode.Command.CanBeNested;
+            e.DropSink.CanDropOnItem = targetNode.Script != null || targetNode.Command.CanBeNested;
 
             if (targetNode.Script != null && sourceNode.Command != null)
                 e.DropSink.CanDropBetween = false;
@@ -470,6 +479,17 @@ namespace RobotEditor
             {
                 OnSelectionChanged?.Invoke((BaseScriptManager)ScriptManager, node.Value);
             }
+        }
+
+        private void TestFixtureWindow_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            TestRunner.TestRunEnd -= OnScriptsFinishedRunning;
+            TestRunner.TestData.CommandRunningCallback -= OnCommandRunning;
+            CommandFactory.NewUserCommands -= AddNewCommandsToCreateMenu;
+            treeListView.HandleCreated -= AddNewCommandsToCreateMenu;
+            contextMenuStrip.HandleCreated -= AddNewCommandsToCreateMenu;
+            treeListView.FormatCell -= UpdateFontsTreeListView;
+            treeListView.HandleCreated -= UpdateHierarchy;
         }
 
         private void ASSERT_TreeViewIsTheSameAsInScriptManager()

@@ -79,7 +79,7 @@ namespace RobotEditor.Utils
             }));
         }
 
-        public static void OnCommandAddedToScript(List<HierarchyNode> nodes, Script script, Command parentCommand, Command command)
+        public static HierarchyNode OnCommandAddedToScript(List<HierarchyNode> nodes, Script script, Command parentCommand, Command command)
         {
             var parentNode = script.Commands.GetNodeFromValue(command).parent;
             System.Diagnostics.Debug.Assert(parentNode.value == parentCommand, "parentCommand and parentNode missmatched");
@@ -87,7 +87,7 @@ namespace RobotEditor.Utils
             var scriptNode = nodes.FindRecursively(script);
 
             var parentHierarchyNode = parentCommand == null ? scriptNode : scriptNode.GetNodeFromValue(parentNode.value);
-            AddCommandToParentRecursive(script, command, parentHierarchyNode);
+            return AddCommandToParentRecursive(script, command, parentHierarchyNode);
         }
 
         public static HierarchyNode AddCommandToParentRecursive(Script script, Command command, HierarchyNode parentHierarchyNode, int pos = -1)
@@ -98,7 +98,7 @@ namespace RobotEditor.Utils
                 parentHierarchyNode.Children.Add(nodeToAdd);
             else
                 parentHierarchyNode.Children.Insert(pos, nodeToAdd);
-
+            // TODOOOOOOO: Assert that commandNOde and nodeToAdd is equal
             var commandNode = script.Commands.GetNodeFromValue(command);
             foreach (var childNode in commandNode)
                 AddCommandToParentRecursive(script, childNode.value, nodeToAdd);
